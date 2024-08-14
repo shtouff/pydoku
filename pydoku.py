@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-from copy import copy, deepcopy
-from functools import lru_cache
+from copy import deepcopy
 from itertools import product
 from typing import List, Tuple, Set
 
@@ -11,35 +10,29 @@ from math import ceil
 
 class Pydoku(object):
     rows: List[List[int]]
-    vals: Set[int]
+    allwd_vals: Set[int] = {e for e in range(1, 10)}  # allowed values
 
     @classmethod
     def from_strings(cls, strings: List[str]):
-        if len(strings) != 9:
-            raise ValueError(f"input should contain 9 strings of 9 numbers, space or . meaning no value")
+        def c2v(c: str) -> int:
+            assert len(c) == 1, "input is expected to be a single char"
+            return 0 if c in " ." else int(c)
 
-        rows = []
-        for s in strings:
-            if len(s) != 9:
-                raise ValueError(f"{s} doesnt have 9 values")
-            row = []
-            for char in s:
-                if char in " .":
-                    row.append(0)
-                else:
-                    row.append(int(char))
-            rows.append(row)
-        return Pydoku(rows)
+        return Pydoku([
+            list(map(c2v, list(row))) for row in strings
+        ])
 
     def __init__(self, rows: List[List[int]]):
+        assert len(rows) == 9, "we expect 9 rows"
+        assert all([len(row) == 9 for row in rows]), "we expect each row to be a list of 9 decimal digits"
+
         self.rows = rows
-        self.vals = {e for e in range(1, 10)}  # possible values
 
     def __str__(self) -> str:
         res = ""
         for start in 0, 3, 6:
             for row in self.rows[start: start + 3]:
-                res += self._row_str(row) + "\n"
+                res += self.__row_as_str(row) + "\n"
             if start != 6:
                 res += "------+-------+-------\n"
         return res
@@ -50,98 +43,54 @@ class Pydoku(object):
     def __eq__(self, o):
         return str(self) == str(o)
 
-    def __hash__(self):
-        return hash(str(self))
-
     @staticmethod
-    def _row_str(row: List[int]) -> str:
+    def __row_as_str(row: List[int]) -> str:
         res = ""
         for start in 0, 3, 6:
-            for n in row[start: start + 3]:
-                if n == 0:
-                    res += ". "
-                else:
-                    res += f"{n} "
+            for v in row[start: start + 3]:
+                res += ("." if v == 0 else str(v)) + " "
             if start != 6:
                 res += "| "
         return res
 
     def show_row(self, y):
-        print(self._row_str(self.rows[y - 1]))
-        print("")
+        print(self.__row_as_str(self.rows[y - 1]) + "\n")
 
     def show_col(self, x):
         for start in 0, 3, 6:
             for row in self.rows[start: start + 3]:
-                if row[x - 1] == 0:
-                    print(".")
-                else:
-                    print(row[x - 1])
-            if start != 6:
-                print("--")
-            else:
-                print("")
+                print(" " + ("." if row[x - 1] == 0 else str(row[x - 1])))
+            print("" if start == 6 else "---")
 
     def show_sub(self, x, y):
         for row in self.rows[(y - 1) * 3: y * 3]:
-            for val in row[(x - 1) * 3: x * 3]:
-                if val == 0:
-                    print(". ", end="")
-                else:
-                    print(f"{val} ", end="")
+            for v in row[(x - 1) * 3: x * 3]:
+                print(("." if v == 0 else str(v)) + " ", end="")
             print("")
         print("")
 
     @staticmethod
-    def is_row_complete(row):
+    def __is_row_complete(row):
         return len(row) == 9 and 0 not in row
 
     def is_complete(self):
-        return all([self.is_row_complete(row) for row in self.rows])
+        return all([self.__is_row_complete(row) for row in self.rows])
 
-    def is_valid(self):
-        return all([
-            *[self.is_row_valid(y) for y in range(1, 10)],
-            *[self.is_col_valid(x) for x in range(1, 10)],
-            *[self.is_sub_valid(x, y) for x, y in product(range(1, 4), repeat=2)]
-        ])
-
-    @lru_cache(maxsize=1_000_000)
-    def miss_from_row(self, y) -> Tuple[Set[int], List[Tuple[int, int]]]:
+    def misses_from_row(self, y) -> Set[int]:
         """
-        return 2 lists:
-        - the list of missing values
-        - the list of coords (x, y), index 1, for those values
+        return a set of missing values for this row
         """
         row = self.rows[y - 1]
-        misses = self.vals - set(row)
-        coords = []
+        return self.allwd_vals - set(row)
 
-        for xx, val in enumerate(row):
-            if val == 0:
-                coords.append((xx + 1, y))
-
-        return misses, coords
-
-    @lru_cache(maxsize=1_000_000)
-    def miss_from_col(self, x) -> Tuple[Set[int], List[Tuple[int, int]]]:
+    def misses_from_col(self, x) -> Set[int]:
         """
-        return 2 lists:
-        - the list of missing values
-        - the list of coords (x, y), index 1, for those values
+        return a set of missing values for this column
         """
         col = [row[x - 1] for row in self.rows]
-        misses = self.vals - set(col)
-        coords = []
+        return self.allwd_vals - set(col)
 
-        for yy, val in enumerate(col):
-            if val == 0:
-                coords.append((x, yy + 1))
-
-        return misses, coords
-
-    @lru_cache(maxsize=1_000_000)
-    def miss_from_sub(self, x, y):
+    def misses_from_sub(self, x, y) -> Set[int]:
         """
         NB: the inputs x and y here are coords of the sub square, not its atomic elements:
 
@@ -152,48 +101,32 @@ class Pydoku(object):
             1,3 | 2,3 | 3,3
 
 
-        return 2 lists:
-        - the list of missing values
-        - the list of coords (x, y), index 1, for those values. x and y are classical coords of elements.
-
+        return a set of missing values for this sub square
         """
-        coords = []
-        misses = self.vals
+        misses = self.allwd_vals
         for yy, xx in product(range((y - 1) * 3, y * 3), range((x - 1) * 3, x * 3)):
-            if self.rows[yy][xx] == 0:
-                coords.append((xx + 1, yy + 1))
-            else:
+            if self.rows[yy][xx] != 0:
                 misses = misses - {self.rows[yy][xx]}
 
-        return misses, coords
+        return misses
 
-    def is_row_valid(self, y):
-        # return len(list(self.miss_from_row(y))) == 0
-        return len(self.miss_from_row(y)[0]) == 0
-
-    def is_col_valid(self, x):
-        # return len(list(self.miss_from_col(x))) == 0
-        return len(self.miss_from_col(x)[0]) == 0
-
-    def is_sub_valid(self, x, y):
-        return len(list(self.miss_from_sub(x, y))) == 0
-
-    def set_val(self, x, y, val: int):
+    def set_val(self, x: int, y: int, val: int):
         self.rows[y - 1][x - 1] = val
 
     def hypothesis(self) -> List[Tuple[Tuple[int, int], Set[int]]]:
         """
-        return all hypothesis we can do on this grid, independently
+        return all hypothesis we can do on this grid, independently one from the other.
+        it means some hypothesis can be mutually excluding !
         """
         hyps = []
         for y in range(1, 10):
             for x in range(1, 10):
                 if self.rows[y - 1][x - 1] == 0:
-                    ymiss, _ = self.miss_from_row(y)
-                    xmiss, _ = self.miss_from_col(x)
-                    smiss, _ = self.miss_from_sub(ceil(x/3.0), ceil(y/3.0))
+                    y_misses = self.misses_from_row(y)
+                    x_misses = self.misses_from_col(x)
+                    xy_misses = self.misses_from_sub(ceil(x / 3.0), ceil(y / 3.0))
 
-                    hyps.append(((x,y), ymiss.intersection(xmiss).intersection(smiss)))
+                    hyps.append(((x,y), y_misses.intersection(x_misses).intersection(xy_misses)))
         return hyps
 
 
@@ -220,7 +153,7 @@ class Solver(object):
                     if p.is_complete():
                         return self.stack
 
-                    res = backtrack()
+                    res = backtrack()  # inception !
                     if res is not None:
                         return res
 
@@ -233,5 +166,10 @@ class Solver(object):
 
 if __name__ == "__main__":
     p = Pydoku.from_strings(sys.argv[1:10])
+
+    # p.show_row(7)
+    # p.show_col(3)
+    # p.show_sub(3, 2)
+
     s = Solver(p)
     s.solve(debug=True)
