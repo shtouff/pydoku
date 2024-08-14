@@ -203,26 +203,30 @@ class Solver(object):
     def __init__(self, p: Pydoku):
         self.stack.append(p)
 
-    def solve(self) -> List[Pydoku]:
+    def solve(self, debug: bool = False) -> List[Pydoku]:
         def backtrack():
 
             # try all hypothesis, recursively
             p = deepcopy(self.stack[-1])
             assert p == self.stack[-1]
-            print(p)
 
             for (x, y), vals in p.hypothesis():
                 for val in vals:
                     p.set_val(x, y, val)
                     self.stack.append(p)
+                    if debug:
+                        print(p)
+
                     if p.is_complete():
                         return self.stack
+
                     res = backtrack()
                     if res is not None:
                         return res
+
                     self.stack.pop()
                     p.set_val(x, y, 0)
-                return None  # no more hypothesis for those coords
+                return None  # no more hypothesis for those coords, dead-end detected
 
         return backtrack()
 
@@ -230,7 +234,4 @@ class Solver(object):
 if __name__ == "__main__":
     p = Pydoku.from_strings(sys.argv[1:10])
     s = Solver(p)
-    print(s.solve()[-1])
-    # for idp, p in enumerate(s.solve()):
-    #     print(f"## {idp} ##")
-    #     print(p)
+    s.solve(debug=True)
