@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 from copy import copy, deepcopy
 from functools import lru_cache
@@ -203,11 +205,11 @@ class Solver(object):
 
     def solve(self) -> List[Pydoku]:
         def backtrack():
-            # print(p)
 
             # try all hypothesis, recursively
             p = deepcopy(self.stack[-1])
             assert p == self.stack[-1]
+            print(p)
 
             for (x, y), vals in p.hypothesis():
                 for val in vals:
@@ -228,7 +230,7 @@ class Solver(object):
 if __name__ == "__main__":
     p = Pydoku.from_strings(sys.argv[1:10])
     s = Solver(p)
-    # print(s.solve()[-1])
-    for idp, p in enumerate(s.solve()):
-        print(f"## {idp} ##")
-        print(p)
+    print(s.solve()[-1])
+    # for idp, p in enumerate(s.solve()):
+    #     print(f"## {idp} ##")
+    #     print(p)
