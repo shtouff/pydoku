@@ -1,5 +1,9 @@
 from pydoku import Pydoku, Solver
 
+"""
+Examples taken from Sud-Ouest.
+"""
+
 
 def test_solver1():
     p = Pydoku.from_strings([
@@ -56,6 +60,33 @@ def test_solver2():
 
 
 def test_solver3():
+    # facile
+    p = Pydoku.from_strings([
+        "346...82.",
+        "...8.16..",
+        ".8946....",
+        "8...9...5",
+        "...68.1..",
+        ".2.51....",
+        ".6.1...9.",
+        "..894..5.",
+        "4.5.7..16",
+    ])
+
+    stack = Solver(p).solve()
+    assert stack[-1] == Pydoku.from_strings([
+        "346759821",
+        "572831649",
+        "189462573",
+        "831294765",
+        "954687132",
+        "627513984",
+        "763125498",
+        "218946357",
+        "495378216",
+    ])
+
+def test_solver4():
     # moyen difficile
     p = Pydoku.from_strings([
         ".38...42.",
@@ -80,4 +111,32 @@ def test_solver3():
         "549872136",
         "862315749",
         "713469582",
+    ])
+
+
+def test_solver5():
+    # difficile
+    p = Pydoku.from_strings([
+        ".35....4.",
+        "6....4...",
+        "1..7..92.",
+        "...6..7.5",
+        "...2.....",
+        ".4..89...",
+        ".5....8.4",
+        ".......69",
+        "...965.7.",
+    ])
+
+    stack = Solver(p).solve()
+    assert stack[-1] == Pydoku.from_strings([
+        "235896147",
+        "697124358",
+        "184753926",
+        "823641795",
+        "569237481",
+        "741589632",
+        "956372814",
+        "372418569",
+        "418965273",
     ])
