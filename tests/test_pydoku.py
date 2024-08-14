@@ -70,6 +70,14 @@ def test_solver3():
     ])
 
     stack = Solver(p).solve()
-    print(stack[-1])
-    # assert stack[-1] == Pydoku.from_strings([
-    # ])
+    assert stack[-1] == Pydoku.from_strings([
+        "138956427",
+        "695247318",
+        "427138965",
+        "951623874",
+        "386794251",
+        "274581693",
+        "549872136",
+        "862315749",
+        "713469582",
+    ])
