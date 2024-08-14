@@ -202,35 +202,53 @@ class Solver(object):
         self.stack.append(p)
 
     def solve(self) -> List[Pydoku]:
+        def backtrack():
+            # 1st, optimize as much as possible with card-1 hypothesis: non-recursive part
+            # while True:
+            #     p = deepcopy(self.stack[-1])
+            #     assert p == self.stack[-1]
+            #     for (x, y), vals in p.hypothesis():
+            #         if len(vals) == 1:
+            #             if x == 8 and y in [7, 8]:
+            #                 breakpoint()
+            #             p.set_val(x, y, list(vals)[0])
+            #     if p != self.stack[-1]: # was mutated, stack it !
+            #         self.stack.append(p)
+            #     elif p.is_complete():
+            #         return self.stack
+            #     else:
+            #         break
 
-        # def backtrack():
-        #     pass
+            # print(p)
 
-        while True:
-            p = deepcopy(self.stack[-1])
-            assert p == self.stack[-1]
+            # try other hypothesis, recursively
             for (x, y), vals in p.hypothesis():
-                if len(vals) == 1:
-                    p.set_val(x, y, list(vals)[0])
-            if p != self.stack[-1]: # was mutated, stack it !
-                self.stack.append(p)
-            elif self.stack[-1].is_complete():
-                return self.stack
-            else:
-                # # try other hypothesis
-                # for (x, y), vals in p.hypothesis():
-                #     if len(vals) > 1:
-                #
-                # backtrack()
-                raise ValueError("no more obvious hypothesis available !")
+                for val in vals:
+                    # if x == 8 and y in [7, 8]:
+                    #     breakpoint()
+                    p.set_val(x, y, val)
+                    # if all([
+                    #     p.is_row_valid(y),
+                    #     p.is_col_valid(x),
+                    #     p.is_sub_valid(ceil(x / 3.0), ceil(y / 3.0)),
+                    # ]):
+                    self.stack.append(p)
+                    if p.is_complete():
+                        return self.stack
+                    res = backtrack()
+                    if res is not None:
+                        return res
+                    self.stack.pop()
+                    p.set_val(x, y, 0)
+                return None  # no more hypothesis for those coords
+
+        return backtrack()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 10:
-        print("please provide 9 args")
-        sys.exit(-1)
-
     p = Pydoku.from_strings(sys.argv[1:10])
     s = Solver(p)
-    for p in s.solve():
+    # print(s.solve()[-1])
+    for idp, p in enumerate(s.solve()):
+        print(f"## {idp} ##")
         print(p)
