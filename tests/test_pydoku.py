@@ -1,142 +1,84 @@
-from pydoku import Pydoku, Solver
+from textwrap import dedent
 
-"""
-Examples taken from Sud-Ouest.
-"""
+from pydoku import Solver
 
 
-def test_solver1():
-    p = Pydoku.from_strings([
-        "7 3  4 21",
-        " 8916   5",
-        "   32 76 ",
-        "8 4    1 ",
-        "19    4 7",
-        "3 7 1685 ",
-        "9  53 2  ",
-        "  8  219 ",
-        " 327   84",
-    ])
-
-    stack = Solver(p).solve()
-    assert stack[-1] == Pydoku.from_strings([
-        "763854921",
-        "289167345",
-        "415329768",
-        "854973612",
-        "196285437",
-        "327416859",
-        "941538276",
-        "578642193",
-        "632791584",
-    ])
+def test_misses_from_row(easy1):
+    assert easy1.misses_from_row(2) == {2, 3, 4, 7}
 
 
-def test_solver2():
-    p = Pydoku.from_strings([
-        "87...15.3",
-        "....8..26",
-        "6..52....",
-        ".918....4",
-        "4.....215",
-        "5.36.4.97",
-        "9....6371",
-        "1..73895.",
-        "23.1.....",
-    ])
-
-    stack = Solver(p).solve()
-    assert stack[-1] == Pydoku.from_strings([
-        "872961543",
-        "359487126",
-        "614523789",
-        "791852634",
-        "468379215",
-        "523614897",
-        "985246371",
-        "146738952",
-        "237195468",
-    ])
+def test_misses_from_col(easy1):
+    assert easy1.misses_from_col(7) == {3, 5, 6, 9}
 
 
-def test_solver3():
-    # facile
-    p = Pydoku.from_strings([
-        "346...82.",
-        "...8.16..",
-        ".8946....",
-        "8...9...5",
-        "...68.1..",
-        ".2.51....",
-        ".6.1...9.",
-        "..894..5.",
-        "4.5.7..16",
-    ])
-
-    stack = Solver(p).solve()
-    assert stack[-1] == Pydoku.from_strings([
-        "346759821",
-        "572831649",
-        "189462573",
-        "831294765",
-        "954687132",
-        "627513984",
-        "763125498",
-        "218946357",
-        "495378216",
-    ])
-
-def test_solver4():
-    # moyen difficile
-    p = Pydoku.from_strings([
-        ".38...42.",
-        ".9....3..",
-        "...1.8...",
-        "..1.....4",
-        ".8.7.4.5.",
-        "..4...69.",
-        "..9.7.1..",
-        "...31....",
-        "7..46.5..",
-    ])
-
-    stack = Solver(p).solve()
-    assert stack[-1] == Pydoku.from_strings([
-        "138956427",
-        "695247318",
-        "427138965",
-        "951623874",
-        "386794251",
-        "274581693",
-        "549872136",
-        "862315749",
-        "713469582",
-    ])
+def test_misses_from_sub(easy1):
+    assert easy1.misses_from_sub(3, 1) == {3, 4, 8, 9}
 
 
-def test_solver5():
-    # difficile
-    p = Pydoku.from_strings([
-        ".35....4.",
-        "6....4...",
-        "1..7..92.",
-        "...6..7.5",
-        "...2.....",
-        ".4..89...",
-        ".5....8.4",
-        ".......69",
-        "...965.7.",
-    ])
+def test_show_row(easy1, capsys):
+    easy1.show_row(2)
+    captured = capsys.readouterr()
+    assert captured.out == dedent(
+        """\
+        . 8 9 | 1 6 . | . . 5 
+        
+        """
+    )
 
-    stack = Solver(p).solve()
-    assert stack[-1] == Pydoku.from_strings([
-        "235896147",
-        "697124358",
-        "184753926",
-        "823641795",
-        "569237481",
-        "741589632",
-        "956372814",
-        "372418569",
-        "418965273",
-    ])
+
+def test_show_col(easy1, capsys):
+    easy1.show_col(7)
+    captured = capsys.readouterr()
+    assert captured.out == dedent(
+        """\
+         .
+         .
+         7
+        ---
+         .
+         4
+         8
+        ---
+         2
+         1
+         .
+        
+        """
+    )
+
+
+def test_str(easy1):
+    assert str(easy1) == dedent(
+        """\
+        7 . 3 | . . 4 | . 2 1 
+        . 8 9 | 1 6 . | . . 5 
+        . . . | 3 2 . | 7 6 . 
+        ------+-------+-------
+        8 . 4 | . . . | . 1 . 
+        1 9 . | . . . | 4 . 7 
+        3 . 7 | . 1 6 | 8 5 . 
+        ------+-------+-------
+        9 . . | 5 3 . | 2 . . 
+        . . 8 | . . 2 | 1 9 . 
+        . 3 2 | 7 . . | . 8 4 
+        """
+    )
+
+
+def test_show_sub(easy1, capsys):
+    easy1.show_sub(3, 1)
+    captured = capsys.readouterr()
+    assert captured.out == dedent(
+        """\
+        . 2 1 
+        . . 5 
+        7 6 . 
+    
+        """
+    )
+
+
+def test_solver(sudoku):
+    problem, solution = sudoku
+    stack = Solver(problem).solve()
+    assert stack[-1] == solution
