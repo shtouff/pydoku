@@ -203,35 +203,15 @@ class Solver(object):
 
     def solve(self) -> List[Pydoku]:
         def backtrack():
-            # 1st, optimize as much as possible with card-1 hypothesis: non-recursive part
-            # while True:
-            #     p = deepcopy(self.stack[-1])
-            #     assert p == self.stack[-1]
-            #     for (x, y), vals in p.hypothesis():
-            #         if len(vals) == 1:
-            #             if x == 8 and y in [7, 8]:
-            #                 breakpoint()
-            #             p.set_val(x, y, list(vals)[0])
-            #     if p != self.stack[-1]: # was mutated, stack it !
-            #         self.stack.append(p)
-            #     elif p.is_complete():
-            #         return self.stack
-            #     else:
-            #         break
-
             # print(p)
 
-            # try other hypothesis, recursively
+            # try all hypothesis, recursively
+            p = deepcopy(self.stack[-1])
+            assert p == self.stack[-1]
+
             for (x, y), vals in p.hypothesis():
                 for val in vals:
-                    # if x == 8 and y in [7, 8]:
-                    #     breakpoint()
                     p.set_val(x, y, val)
-                    # if all([
-                    #     p.is_row_valid(y),
-                    #     p.is_col_valid(x),
-                    #     p.is_sub_valid(ceil(x / 3.0), ceil(y / 3.0)),
-                    # ]):
                     self.stack.append(p)
                     if p.is_complete():
                         return self.stack
