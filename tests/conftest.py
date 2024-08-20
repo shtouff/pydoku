@@ -1,134 +1,71 @@
-from typing import Tuple
+from typing import Tuple, TypeVar, Union, Any, Dict
 
 import pytest
 
+
+from sudouest import sudokus as so_sudokus
+from euler import sudokus as eu_sudokus
 from pydoku import Pydoku
-
-"""
-Examples taken from Sud-Ouest newspaper:
-"""
-__sudokus = {
-    "easy1": (Pydoku.from_strings([
-        "7 3  4 21",
-        " 8916   5",
-        "   32 76 ",
-        "8 4    1 ",
-        "19    4 7",
-        "3 7 1685 ",
-        "9  53 2  ",
-        "  8  219 ",
-        " 327   84",
-    ]), Pydoku.from_strings([
-        "763854921",
-        "289167345",
-        "415329768",
-        "854973612",
-        "196285437",
-        "327416859",
-        "941538276",
-        "578642193",
-        "632791584",
-    ])),
-    "easy2": (Pydoku.from_strings([
-        "87...15.3",
-        "....8..26",
-        "6..52....",
-        ".918....4",
-        "4.....215",
-        "5.36.4.97",
-        "9....6371",
-        "1..73895.",
-        "23.1.....",
-    ]), Pydoku.from_strings([
-        "872961543",
-        "359487126",
-        "614523789",
-        "791852634",
-        "468379215",
-        "523614897",
-        "985246371",
-        "146738952",
-        "237195468",
-    ])),
-    "easy3": (Pydoku.from_strings([
-        "346...82.",
-        "...8.16..",
-        ".8946....",
-        "8...9...5",
-        "...68.1..",
-        ".2.51....",
-        ".6.1...9.",
-        "..894..5.",
-        "4.5.7..16",
-    ]), Pydoku.from_strings([
-        "346759821",
-        "572831649",
-        "189462573",
-        "831294765",
-        "954687132",
-        "627513984",
-        "763125498",
-        "218946357",
-        "495378216",
-    ])),
-    "middle1": (Pydoku.from_strings([
-        ".38...42.",
-        ".9....3..",
-        "...1.8...",
-        "..1.....4",
-        ".8.7.4.5.",
-        "..4...69.",
-        "..9.7.1..",
-        "...31....",
-        "7..46.5..",
-    ]), Pydoku.from_strings([
-        "138956427",
-        "695247318",
-        "427138965",
-        "951623874",
-        "386794251",
-        "274581693",
-        "549872136",
-        "862315749",
-        "713469582",
-    ])),
-    "hard1": (Pydoku.from_strings([
-        ".35....4.",
-        "6....4...",
-        "1..7..92.",
-        "...6..7.5",
-        "...2.....",
-        ".4..89...",
-        ".5....8.4",
-        ".......69",
-        "...965.7.",
-    ]), Pydoku.from_strings([
-        "235896147",
-        "697124358",
-        "184753926",
-        "823641795",
-        "569237481",
-        "741589632",
-        "956372814",
-        "372418569",
-        "418965273",
-    ])),
-}
+from pydoku2 import Pydoku2
 
 
-@pytest.fixture(params=__sudokus.keys())
-def sudoku(request):
-    return __sudokus[request.param]
+
+
+T_Pydoku = Union[Pydoku, Pydoku2]
+def get_sudoku_by_type(source: str, name: str, cls: type[T_Pydoku]) -> Tuple[T_Pydoku, T_Pydoku]:
+    if source == "sudouest":
+        docstrings = so_sudokus[name]
+    elif source == "euler":
+        docstrings = eu_sudokus[name]
+    else:
+        raise ValueError("unknown source")
+    return cls.from_docstring(docstrings[0]), cls.from_docstring(docstrings[1])
 
 
 @pytest.fixture()
 def get_sudoku():
-    def __f(name) -> Tuple[Pydoku, Pydoku]:
-        return __sudokus[name]
-
+    def __f(source, name) -> Tuple[Pydoku, Pydoku]:
+        return get_sudoku_by_type(source, name, Pydoku)
     return __f
 
 
 @pytest.fixture()
-def easy1(get_sudoku):
-    return get_sudoku("easy1")[0]
+def get_sudoku2():
+    def __f(source, name) -> Tuple[Pydoku2, Pydoku2]:
+        return get_sudoku_by_type(source, name, Pydoku2)
+    return __f
+
+
+@pytest.fixture(params=so_sudokus.keys())
+def sudouest(get_sudoku, request):
+    return get_sudoku("sudouest", request.param)
+
+
+@pytest.fixture(params=eu_sudokus.keys())
+def euler(get_sudoku, request):
+    return get_sudoku("euler", request.param)
+
+
+def __flatten(d: Dict[str, Dict[str, Any]]):
+    """
+    Flatten a dict of dicts to a list a combined keys
+    """
+    keys = []
+    for k1 in d.keys():
+        for k2 in d[k1].keys():
+            # keys.append((k1, k2))
+            keys.append(":".join([k1, k2]))
+
+    return keys
+
+
+@pytest.fixture(params=__flatten(dict(sudouest=so_sudokus, euler=eu_sudokus)))
+def sudokus(get_sudoku, request):
+    return get_sudoku(request.param[0], request.param[1])
+
+
+@pytest.fixture(params=__flatten(dict(sudouest=so_sudokus, euler=eu_sudokus)))
+def sudokus2(get_sudoku2, request):
+    # source, name = request.param.split(":")
+    return get_sudoku2(*request.param.split(":"))
+    # return get_sudoku2(request.param[0], request.param[1])

@@ -78,7 +78,19 @@ def test_show_sub(easy1, capsys):
     )
 
 
-def test_solver(sudoku):
-    problem, solution = sudoku
+def test_solver(sudokus):
+    problem, solution = sudokus
     stack = Solver(problem).solve()
     assert stack[-1] == solution
+
+
+def test_hard1(get_sudoku):
+    problem, solution = get_sudoku("sudouest", "hard1")
+    stack = Solver(problem).solve()
+    assert stack[-1] == solution
+#
+#
+# def test_middle1(get_sudoku):
+#     problem, solution = get_sudoku("middle1")
+#     stack = Solver(problem).solve()
+#     assert stack[-1] == solution
