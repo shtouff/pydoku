@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import sys
 from copy import deepcopy
+from functools import lru_cache
 from itertools import product
 from typing import List, Tuple, Set
 
@@ -12,14 +15,19 @@ class Pydoku(object):
     rows: List[List[int]]
     allwd_vals: Set[int] = {e for e in range(1, 10)}  # allowed values
 
-    @classmethod
-    def from_strings(cls, strings: List[str]):
-        def c2v(c: str) -> int:
-            assert len(c) == 1, "input is expected to be a single char"
-            return 0 if c in " ." else int(c)
+    @staticmethod
+    def __char2digit(char: str) -> int:
+        assert len(char) == 1, "input is expected to be a single char"
+        return 0 if char in " ." else int(char)
 
-        return Pydoku([
-            list(map(c2v, list(row))) for row in strings
+    @classmethod
+    def from_docstring(cls, src: str) -> Pydoku:
+        return cls.from_strings(src.split("\n")[0:9])
+
+    @classmethod
+    def from_strings(cls, strings: List[str]) -> Pydoku:
+        return cls([
+            list(map(cls.__char2digit, list(row))) for row in strings
         ])
 
     def __init__(self, rows: List[List[int]]):
@@ -42,6 +50,9 @@ class Pydoku(object):
 
     def __eq__(self, o):
         return str(self) == str(o)
+
+    def __hash__(self):
+        return hash(str(self))
 
     @staticmethod
     def __row_as_str(row: List[int]) -> str:
@@ -104,29 +115,107 @@ class Pydoku(object):
         return a set of missing values for this sub square
         """
         misses = self.allwd_vals
-        for yy, xx in product(range((y - 1) * 3, y * 3), range((x - 1) * 3, x * 3)):
-            if self.rows[yy][xx] != 0:
-                misses = misses - {self.rows[yy][xx]}
+
+        # for yy, xx in product(range((y - 1) * 3, y * 3), range((x - 1) * 3, x * 3)):
+        #     if self.rows[yy][xx] != 0:
+        #         misses = misses - {self.rows[yy][xx]}
+        for yy in range((y - 1) * 3, y * 3):
+            for xx in range((x - 1) * 3, x * 3):
+                if self.rows[yy][xx] != 0:
+                    misses = misses - {self.rows[yy][xx]}
 
         return misses
 
     def set_val(self, x: int, y: int, val: int):
         self.rows[y - 1][x - 1] = val
 
-    def hypothesis(self) -> List[Tuple[Tuple[int, int], Set[int]]]:
+    # @lru_cache()
+    def hypothesis(self) -> List[Tuple[Tuple[int, int], List[int]]]:
         """
         return all hypothesis we can do on this grid, independently one from the other.
         it means some hypothesis can be mutually excluding !
         """
         hyps = []
-        for y in range(1, 10):
-            for x in range(1, 10):
-                if self.rows[y - 1][x - 1] == 0:
-                    y_misses = self.misses_from_row(y)
-                    x_misses = self.misses_from_col(x)
-                    xy_misses = self.misses_from_sub(ceil(x / 3.0), ceil(y / 3.0))
 
-                    hyps.append(((x,y), y_misses.intersection(x_misses).intersection(xy_misses)))
+        # dcount = 0
+        # for x, y in product(range(1, 5), range(1, 10)):
+        #     if self.rows[y - 1][x - 1] == 0:
+        #         dcount += 1
+        # for y in range(1, 6):
+        #     if self.rows[y - 1][4] == 0:
+        #         dcount += 1
+        #
+        # rcount = 0
+        # for y, x in product(range(1, 5), range(1, 10)):
+        #     if self.rows[y - 1][x - 1] == 0:
+        #         rcount += 1
+        # for x in range(1, 6):
+        #     if self.rows[4][x - 1] == 0:
+        #         rcount += 1
+        #
+        # if dcount > rcount:
+        #     for x, y in product(range(1, 10), range(1, 10)):
+        #         if self.rows[y - 1][x - 1] == 0:
+        #             y_misses = self.misses_from_row(y)
+        #             x_misses = self.misses_from_col(x)
+        #             xy_misses = self.misses_from_sub(ceil(x / 3.0), ceil(y / 3.0))
+        #
+        #             hyps.append(((x, y), y_misses.intersection(x_misses).intersection(xy_misses)))
+        # else:
+        #     for y, x in product(range(1, 10), range(1, 10)):
+        #         if self.rows[y - 1][x - 1] == 0:
+        #             y_misses = self.misses_from_row(y)
+        #             x_misses = self.misses_from_col(x)
+        #             xy_misses = self.misses_from_sub(ceil(x / 3.0), ceil(y / 3.0))
+        #
+        #             hyps.append(((x, y), y_misses.intersection(x_misses).intersection(xy_misses)))
+
+        # for y in range(1, 10):
+        #     for x in range(1, 10):
+        #         if self.rows[y - 1][x - 1] == 0:
+        #             y_misses = self.misses_from_row(y)
+        #             x_misses = self.misses_from_col(x)
+        #             xy_misses = self.misses_from_sub(ceil(x / 3.0), ceil(y / 3.0))
+        #
+        #             hyps.append(((x, y), y_misses.intersection(x_misses).intersection(xy_misses)))
+        for y, x in product(range(1, 10), range(1, 10)):
+            if self.rows[y - 1][x - 1] == 0:
+                y_misses = self.misses_from_row(y)
+                x_misses = self.misses_from_col(x)
+                xy_misses = self.misses_from_sub(ceil(x / 3.0), ceil(y / 3.0))
+
+                hyps.append(((x, y), list(y_misses.intersection(x_misses).intersection(xy_misses))))
+
+
+        # sort hypothesis by increasing frequency of appareance of values
+        hyps_by_coords = {}
+        for (x, y), vals in hyps:
+            hyps_by_coords[x, y] = vals
+
+        for (x, y), vals in hyps:
+            freqs = [0] * 9
+
+            # scan row
+            for xx in range(1, 10):
+                for val in hyps_by_coords.get((xx, y), []):
+                    freqs[val - 1] += 1
+
+            # scan col
+            for yy in range(1, 10):
+                for val in hyps_by_coords.get((x, yy), []):
+                    freqs[val - 1] += 1
+
+            # scan sub square
+            xstart = (ceil(x / 3.0) - 1) * 3 + 1
+            ystart = (ceil(y / 3.0) - 1) * 3 + 1
+            for yy in range(ystart, ystart + 3):
+                for xx in range(xstart, xstart + 3):
+                    for val in hyps_by_coords.get((xx, yy), []):
+                        freqs[val - 1] += 1
+
+            # re-order this vals given frequencies
+            vals.sort(key=lambda e: freqs[e - 1])
+
         return hyps
 
 
@@ -165,11 +254,41 @@ class Solver(object):
 
 
 if __name__ == "__main__":
-    p = Pydoku.from_strings(sys.argv[1:10])
+    p = Pydoku.from_strings([
+        ".35....4.",
+        "6....4...",
+        "1..7..92.",
+        "...6..7.5",
+        "...2.....",
+        ".4..89...",
+        ".5....8.4",
+        ".......69",
+        "...965.7.",
+    ])
+    s = Solver(p)
+    s.solve(debug=True)
 
+
+    # p = Pydoku.from_strings([
+    #     ".38...42.",
+    #     ".9....3..",
+    #     "...1.8...",
+    #     "..1.....4",
+    #     ".8.7.4.5.",
+    #     "..4...69.",
+    #     "..9.7.1..",
+    #     "...31....",
+    #     "7..46.5..",
+    # ])
+    # s = Solver(p)
+    # s.solve(debug=True)
+
+
+    # p = Pydoku.from_strings(sys.argv[1:10])
+    #
     # p.show_row(7)
     # p.show_col(3)
     # p.show_sub(3, 2)
-
-    s = Solver(p)
-    s.solve(debug=True)
+    #
+    # s = Solver(p)
+    # s.solve(debug=True)
