@@ -207,21 +207,14 @@ class Solver(object):
 
         # Iterate through the 9 different blocks of the board and count
         # appearance of numbers within the cache
-        r_block_start = c_block_start = 0
-
         for block in range(9):
+            r_start, c_start = rc_start(block)
             allwd_vals = list(chain(*[
-                cache.get((row, col), []) for col in range(c_block_start, c_block_start + 3) for row in
-                range(r_block_start, r_block_start + 3)
+                cache.get((row, col), []) for col in range(c_start, c_start + 3) for row in
+                range(r_start, r_start + 3)
             ]))
             for digit in set(allwd_vals):
                 digit_counts_in_block[block][digit] = allwd_vals.count(digit)
-
-            if c_block_start == 6:
-                r_block_start += 3
-                c_block_start = 0
-            else:
-                c_block_start += 3
 
         # now check if there are some values in the cache for which their occurrence is
         # unique in their row, or in their column, or in their block.
