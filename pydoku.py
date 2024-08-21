@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 from itertools import chain
 from textwrap import dedent
-from typing import List, Tuple, Optional, Dict
+import time
+from typing import List, Tuple, Optional, Dict, Union
 
 
 class Pydoku(object):
@@ -95,11 +98,29 @@ class Pydoku(object):
 class Solver(object):
     __p: __MutablePydoku = None
 
+    class _DebugRow(list):
+        __p: Pydoku = None
+
+        def __init__(self, p: Pydoku, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.__p = p
+
+        def __setitem__(self, key, value):
+            print(self.__p.pretty())
+            time.sleep(0.2)
+            super().__setitem__(key, value)
+
+    Row = Union[List, _DebugRow]
+
     class __MutablePydoku(Pydoku):
-        __mutable_rows: List[List[int]] = None
+        __mutable_rows: List[Solver.Row[int]] = None
 
         def __init__(self, p: Pydoku):
-            rows = [list(row) for row in p]
+            if os.environ.get("DEBUG", "0").lower() in ["1", "true", "yes"]:
+                rows = [Solver._DebugRow(self, row) for row in p]
+            else:
+                rows = [list(row) for row in p]
+
             super().__init__(rows)
             self.__mutable_rows = rows
 
@@ -166,10 +187,16 @@ class Solver(object):
             else:
                 c_block_start += 3
 
+        # check for obvious unique solutions in the cache
+        found = False
+        for (row, col), values in cache.items():
+            if len(values) == 1:
+                self.__p[row][col] = values[0]
+                found = True
+
         # now check if there are some values in the cache for which their occurrence is
         # unique in their row, or in their column, or in their block.
         # if so, update the board and notify caller.
-        found = False
         for (row, col), values in cache.items():
             block_num = (row // 3) * 3 + col // 3
             for value in values:
@@ -224,5 +251,5 @@ if __name__ == "__main__":
         .......69
         ...965.7.
     """))
-
+    print(p.pretty())
     print(Solver(p).solve().pretty())
