@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 import os
-from itertools import chain
+from itertools import chain, product
 from textwrap import dedent
 import time
 from typing import List, Tuple, Optional, Dict, Union
+
+
+rc_start = lambda b: ((b // 3) * 3, (b % 3) * 3)
+block_num = lambda r, c: (r // 3) * 3 + c // 3
 
 
 class Pydoku(object):
@@ -106,9 +110,9 @@ class Solver(object):
             self.__p = p
 
         def __setitem__(self, key, value):
-            print(self.__p.pretty())
-            time.sleep(0.2)
             super().__setitem__(key, value)
+            print(self.__p.pretty())
+            time.sleep(0.02)
 
     Row = Union[List, _DebugRow]
 
@@ -147,7 +151,39 @@ class Solver(object):
             if self.__p[row][col] == 0
         }
 
-    def update_with_unique_solutions(self, cache) -> bool:
+    # def update_cache(self, cache, rows, cols, blocks):
+    def update_cache(self, cache, updated):
+        """
+        Update the cache smartly. Compute every candidate, then dedup the list before actual update
+        """
+        # 1st, remove from cache positions that were updated.
+        for row, col in updated:
+            if (row, col) in cache:
+                del cache[row, col]
+
+
+        # 2nd, compute rows, cols and blocks that need a cache update
+        rows = set([row for row, _ in updated])
+        cols = set([col for _, col in updated])
+        blocks = set([block_num(row, col) for row, col in updated])
+
+        # 3rd, update the cache
+        to_update = []
+
+        ## Update candidate positions with rows, cols and blocks
+        to_update.extend(product(rows, range(9)))
+        to_update.extend(product(range(9), cols))
+
+        for block in blocks:
+            r_start, c_start = rc_start(block)
+            to_update.extend(product(range(r_start, r_start + 3), range(c_start, c_start + 3)))
+
+        ## actual update on dedup'ed list
+        for row, col in set(to_update):
+            if self.__p[row][col] == 0:
+                cache[row, col] = self.__p.allowed_values(row, col)
+
+    def update_with_unique_solutions(self, cache) -> List[Tuple[int, int]]:
         """
         Making use of the available information on the board, try to update the board where there is only one solution
         """
@@ -173,13 +209,13 @@ class Solver(object):
         # appearance of numbers within the cache
         r_block_start = c_block_start = 0
 
-        for block_num in range(9):
+        for block in range(9):
             allwd_vals = list(chain(*[
                 cache.get((row, col), []) for col in range(c_block_start, c_block_start + 3) for row in
                 range(r_block_start, r_block_start + 3)
             ]))
             for digit in set(allwd_vals):
-                digit_counts_in_block[block_num][digit] = allwd_vals.count(digit)
+                digit_counts_in_block[block][digit] = allwd_vals.count(digit)
 
             if c_block_start == 6:
                 r_block_start += 3
@@ -187,25 +223,26 @@ class Solver(object):
             else:
                 c_block_start += 3
 
-        # check for obvious unique solutions in the cache
-        found = False
+        # now check if there are some values in the cache for which their occurrence is
+        # unique in their row, or in their column, or in their block.
+        # Also, handle obvious cases where values in cache is unique.
+        #
+        # In both cases, update the board and notify caller.
+        updated = []
+
         for (row, col), values in cache.items():
             if len(values) == 1:
                 self.__p[row][col] = values[0]
-                found = True
-
-        # now check if there are some values in the cache for which their occurrence is
-        # unique in their row, or in their column, or in their block.
-        # if so, update the board and notify caller.
-        for (row, col), values in cache.items():
-            block_num = (row // 3) * 3 + col // 3
+                updated.append((row, col))
+                continue
+            block = block_num(row, col)
             for value in values:
                 if digit_counts_in_row[row][value] == 1 or digit_counts_in_col[col][value] == 1 or \
-                        digit_counts_in_block[block_num][value] == 1:
+                        digit_counts_in_block[block][value] == 1:
                     self.__p[row][col] = value
-                    found = True
+                    updated.append((row, col))
 
-        return found
+        return updated
 
     def solve(self):
         def __backtrack() -> bool:
@@ -228,10 +265,12 @@ class Solver(object):
                     self.__p[row][col] = 0
             return False
 
+        cache = self.cache_allowed_values()
         while True:
-            cache = self.cache_allowed_values()
-            if not self.update_with_unique_solutions(cache):
+            updated = self.update_with_unique_solutions(cache)
+            if not updated:
                 break
+            self.update_cache(cache, updated)
 
         if __backtrack():
             return self.__p
