@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from itertools import chain, product
 from textwrap import dedent
 import time
@@ -87,7 +88,8 @@ class Pydoku(object):
 
     def is_valid(self, digit: int, row: int, col: int) -> bool:
         """
-        Check whether a specific number can be used for specific dimensions
+        Check whether a specific number
+        can be used for specific dimensions
         """
         r_start, c_start = map(lambda n: 3 * (n // 3), (row, col))
         return not (
@@ -103,16 +105,18 @@ class Solver(object):
     __p: __MutablePydoku = None
 
     class _DebugRow(list):
-        __p: Pydoku = None
+        __parent: Pydoku = None
+        __delay: float = 0
 
-        def __init__(self, p: Pydoku, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.__p = p
+        def __init__(self, row: List[int], delay: float, parent: Pydoku):
+            super().__init__(row)
+            self.__parent = parent
+            self.__delay = delay
 
         def __setitem__(self, key, value):
             super().__setitem__(key, value)
-            print(self.__p.pretty())
-            time.sleep(0.02)
+            print(self.__parent.pretty())
+            time.sleep(self.__delay)
 
     Row = Union[List, _DebugRow]
 
@@ -120,8 +124,8 @@ class Solver(object):
         __mutable_rows: List[Solver.Row[int]] = None
 
         def __init__(self, p: Pydoku):
-            if os.environ.get("DEBUG", "0").lower() in ["1", "true", "yes"]:
-                rows = [Solver._DebugRow(self, row) for row in p]
+            if (delay := float(os.environ.get("DEBUG", "0"))) > 0:
+                rows = [Solver._DebugRow(row, delay, self) for row in p]
             else:
                 rows = [list(row) for row in p]
 
@@ -272,16 +276,19 @@ class Solver(object):
 
 
 if __name__ == "__main__":
-    p = Pydoku.from_docstring(dedent("""\
-        .35....4.
-        6....4...
-        1..7..92.
-        ...6..7.5
-        ...2.....
-        .4..89...
-        .5....8.4
-        .......69
-        ...965.7.
-    """))
+    if len(sys.argv) > 1:
+        p = Pydoku.from_strings(sys.argv[1:])
+    else:
+        p = Pydoku.from_docstring(dedent("""\
+            .35....4.
+            6....4...
+            1..7..92.
+            ...6..7.5
+            ...2.....
+            .4..89...
+            .5....8.4
+            .......69
+            ...965.7.
+        """))
     print(p.pretty())
     print(Solver(p).solve().pretty())
