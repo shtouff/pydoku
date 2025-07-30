@@ -23,6 +23,7 @@ def get_sudoku_by_type(source: str, name: str, cls: type[Pydoku]) -> Tuple[Pydok
 def get_sudoku():
     def __f(source, name) -> Tuple[Pydoku, Pydoku]:
         return get_sudoku_by_type(source, name, Pydoku)
+
     return __f
 
 

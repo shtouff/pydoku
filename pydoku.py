@@ -17,6 +17,7 @@ class Pydoku(object):
     """
     An  immutable object representing a sudoku grid.
     """
+
     __rows: Tuple[Tuple[int, ...], ...] = None
 
     def __init__(self, rows: List[List[int]]):
@@ -35,9 +36,7 @@ class Pydoku(object):
 
     @classmethod
     def from_strings(cls, strings: List[str]) -> Pydoku:
-        return cls([
-            list(map(cls.__char2digit, list(row))) for row in strings
-        ])
+        return cls([list(map(cls.__char2digit, list(row))) for row in strings])
 
     @staticmethod
     def __colored(v: int) -> str:
@@ -46,7 +45,7 @@ class Pydoku(object):
     def __row_as_str(self, row: List[int], coord: Optional[int] = -1) -> str:
         res = ""
         for start in 0, 3, 6:
-            for i, v in enumerate(row[start: start + 3]):
+            for i, v in enumerate(row[start : start + 3]):
                 if coord == start + i:
                     res += ("." if v == 0 else self.__colored(v)) + " "
                 else:
@@ -58,7 +57,7 @@ class Pydoku(object):
     def pretty(self, coords: Tuple[int, int] = (-1, -1)) -> str:
         res = ""
         for start in 0, 3, 6:
-            for i, row in enumerate(self[start: start + 3]):
+            for i, row in enumerate(self[start : start + 3]):
                 if coords[0] == start + i:
                     res += self.__row_as_str(row, coords[1]) + "\n"
                 else:
@@ -91,7 +90,7 @@ class Pydoku(object):
         """
         for row in range(9):
             for col in range(9):
-                if self[row][col] == 0 :
+                if self[row][col] == 0:
                     return row, col
         return None
 
@@ -102,11 +101,9 @@ class Pydoku(object):
         """
         r_start, c_start = map(lambda n: 3 * (n // 3), (row, col))
         return not (
-            digit in self[row][0:9] or
-            digit in [self[i][col] for i in range(9)] or
-            digit in [
-                self[i][j] for j in range(c_start, c_start + 3) for i in range(r_start, r_start + 3)
-            ]
+            digit in self[row][0:9]
+            or digit in [self[i][col] for i in range(9)]
+            or digit in [self[i][j] for j in range(c_start, c_start + 3) for i in range(r_start, r_start + 3)]
         )
 
 
@@ -175,7 +172,6 @@ class Solver(object):
             if (row, col) in cache:
                 del cache[row, col]
 
-
         # 2nd, compute rows, cols and blocks that need a cache update
         rows = set([row for row, _ in updated])
         cols = set([col for _, col in updated])
@@ -223,10 +219,15 @@ class Solver(object):
         # appearance of numbers within the cache
         for block in range(9):
             r_start, c_start = rc_start(block)
-            allwd_vals = list(chain(*[
-                cache.get((row, col), []) for col in range(c_start, c_start + 3) for row in
-                range(r_start, r_start + 3)
-            ]))
+            allwd_vals = list(
+                chain(
+                    *[
+                        cache.get((row, col), [])
+                        for col in range(c_start, c_start + 3)
+                        for row in range(r_start, r_start + 3)
+                    ]
+                )
+            )
             for digit in set(allwd_vals):
                 digit_counts_in_block[block][digit] = allwd_vals.count(digit)
 
@@ -244,8 +245,11 @@ class Solver(object):
                 continue
             block = block_num(row, col)
             for value in values:
-                if digit_counts_in_row[row][value] == 1 or digit_counts_in_col[col][value] == 1 or \
-                        digit_counts_in_block[block][value] == 1:
+                if (
+                    digit_counts_in_row[row][value] == 1
+                    or digit_counts_in_col[col][value] == 1
+                    or digit_counts_in_block[block][value] == 1
+                ):
                     self.__p[row][col] = value
                     updated.append((row, col))
 
@@ -292,7 +296,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         p = Pydoku.from_strings(sys.argv[1:])
     else:
-        p = Pydoku.from_docstring(dedent("""\
+        p = Pydoku.from_docstring(
+            dedent(
+                """\
             .35....4.
             6....4...
             1..7..92.
@@ -302,6 +308,8 @@ if __name__ == "__main__":
             .5....8.4
             .......69
             ...965.7.
-        """))
+        """
+            )
+        )
     print(p.pretty())
     print(Solver(p).solve().pretty())
