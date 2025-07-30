@@ -41,7 +41,7 @@ class Pydoku(object):
 
     @staticmethod
     def __colored(v: int) -> str:
-        return "\033[1;33m" + str(v) + "\033[0m"
+        return "\033[1;93m" + str(v) + "\033[0m"
 
     def __row_as_str(self, row: List[int], coord: Optional[int] = -1) -> str:
         res = ""
