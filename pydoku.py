@@ -40,20 +40,29 @@ class Pydoku(object):
         ])
 
     @staticmethod
-    def __row_as_str(row: List[int]) -> str:
+    def __colored(v: int) -> str:
+        return "\033[1;33m" + str(v) + "\033[0m"
+
+    def __row_as_str(self, row: List[int], coord: Optional[int] = -1) -> str:
         res = ""
         for start in 0, 3, 6:
-            for v in row[start: start + 3]:
-                res += ("." if v == 0 else str(v)) + " "
+            for i, v in enumerate(row[start: start + 3]):
+                if coord == start + i:
+                    res += ("." if v == 0 else self.__colored(v)) + " "
+                else:
+                    res += ("." if v == 0 else str(v)) + " "
             if start != 6:
                 res += "| "
         return res
 
-    def pretty(self) -> str:
+    def pretty(self, coords: Tuple[int, int] = (-1, -1)) -> str:
         res = ""
         for start in 0, 3, 6:
-            for row in self[start: start + 3]:
-                res += self.__row_as_str(row) + "\n"
+            for i, row in enumerate(self[start: start + 3]):
+                if coords[0] == start + i:
+                    res += self.__row_as_str(row, coords[1]) + "\n"
+                else:
+                    res += self.__row_as_str(row) + "\n"
             if start != 6:
                 res += "------+-------+-------\n"
         return res
@@ -107,15 +116,17 @@ class Solver(object):
     class _DebugRow(list):
         __parent: Pydoku = None
         __delay: float = 0
+        __index: int = 0
 
-        def __init__(self, row: List[int], delay: float, parent: Pydoku):
+        def __init__(self, row: List[int], delay: float, parent: Pydoku, index: int):
             super().__init__(row)
             self.__parent = parent
             self.__delay = delay
+            self.__index = index
 
         def __setitem__(self, key, value):
             super().__setitem__(key, value)
-            print(self.__parent.pretty())
+            print(self.__parent.pretty((self.__index, key)))
             time.sleep(self.__delay)
 
     Row = Union[List, _DebugRow]
@@ -125,7 +136,7 @@ class Solver(object):
 
         def __init__(self, p: Pydoku):
             if (delay := float(os.environ.get("DEBUG", "0"))) > 0:
-                rows = [Solver._DebugRow(row, delay, self) for row in p]
+                rows = [Solver._DebugRow(row, delay, self, i) for i, row in enumerate(p)]
             else:
                 rows = [list(row) for row in p]
 
