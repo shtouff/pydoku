@@ -166,7 +166,6 @@ class Solver(object):
             if self.__p[row][col] == 0
         }
 
-    # def update_cache(self, cache, rows, cols, blocks):
     def update_cache(self, cache, updated):
         """
         Update the cache smartly. Compute every candidate, then dedup the list before actual update
@@ -279,6 +278,9 @@ class Solver(object):
             if not updated:
                 break
             self.update_cache(cache, updated)
+
+        if int(os.environ.get("BACKTRACK", "1")) == 0:
+            return self.__p
 
         if __backtrack():
             return self.__p
