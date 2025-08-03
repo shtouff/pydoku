@@ -16,7 +16,7 @@ def get_sudoku_by_type(source: str, name: str, cls: type[Pydoku]) -> Tuple[Pydok
         docstrings = eu_sudokus[name]
     else:
         raise ValueError(f"unknown source: {source}")
-    return cls.from_docstring(docstrings[0]), cls.from_docstring(docstrings[1])
+    return cls.from_multistring(docstrings[0]), cls.from_multistring(docstrings[1])
 
 
 @pytest.fixture()

@@ -31,7 +31,7 @@ class Pydoku(object):
         return 0 if char in " ." else int(char)
 
     @classmethod
-    def from_docstring(cls, src: str) -> Pydoku:
+    def from_multistring(cls, src: str) -> Pydoku:
         return cls.from_strings(src.split("\n")[0:9])
 
     @classmethod
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         p = Pydoku.from_strings(sys.argv[1:])
     else:
-        p = Pydoku.from_docstring(
+        p = Pydoku.from_multistring(
             dedent(
                 """\
             .35....4.
