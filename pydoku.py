@@ -124,7 +124,10 @@ class Solver(object):
         def __setitem__(self, key, value):
             super().__setitem__(key, value)
             print(self.__parent.pretty((self.__index, key)))
-            time.sleep(self.__delay)
+            if self.__delay < 0.0:
+                input()
+            else:
+                time.sleep(self.__delay)
 
     Row = Union[List, _DebugRow]
 
@@ -132,7 +135,7 @@ class Solver(object):
         __mutable_rows: List[Solver.Row[int]] = None
 
         def __init__(self, p: Pydoku):
-            if (delay := float(os.environ.get("DEBUG", "0"))) > 0:
+            if (delay := float(os.environ.get("DEBUG", "0"))) != 0.0:
                 rows = [Solver._DebugRow(row, delay, self, i) for i, row in enumerate(p)]
             else:
                 rows = [list(row) for row in p]
